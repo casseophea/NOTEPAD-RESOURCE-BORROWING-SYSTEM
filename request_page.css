@@ -1,0 +1,349 @@
+/* ══════════════════════════════════════════════
+   Barangay Tiniguiban – Request Page
+   ══════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── VARIABLES ─────────────────────────────── */
+:root {
+  --cream:       #f5f0e8;
+  --cream-dark:  #ede6d6;
+  --bg:          #8fa8b8;
+  --card-bg:     #d9d9d9;
+  --card-border: #a7a7a7;
+  --navy:        #1a2535;
+  --navy-mid:    #2c3e55;
+  --red:         #7a1a1a;
+  --red-light:   #9e2020;
+  --green:       #2a6e2a;
+  --green-light: #3a8f3a;
+  --text-main:   #1e2830;
+  --text-muted:  #5a6a76;
+
+  --shadow-sm:   0 2px 8px rgba(0,0,0,.12);
+  --shadow-md:   0 4px 18px rgba(0,0,0,.16);
+
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   28px;
+}
+
+/* ── BODY ─────────────────────────────────── */
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: #ACBAC4;
+  min-height: 100vh;
+  color: var(--text-main);
+}
+
+/* ── HEADER ───────────────────────────────── */
+header {
+  background: var(--cream);
+  border-bottom: 2px solid var(--cream-dark);
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  padding: 10px 30px;
+  width: 95%;
+  max-width: 1300px;
+  margin: 25px auto;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── LOGO ─────────────────────────────────── */
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+
+.brand-text h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.2;
+}
+
+.brand-text p {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* ── NAV ──────────────────────────────────── */
+nav {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  margin-left: 1.5rem;
+}
+
+nav a {
+  text-decoration: none;
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: .35rem .75rem;
+  border-radius: var(--radius-sm);
+  transition: .2s;
+  position: relative;
+}
+
+nav a:hover {
+  background: var(--cream-dark);
+  color: var(--navy);
+}
+
+nav a.active {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+nav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: .75rem;
+  right: .75rem;
+  height: 2px;
+  background: var(--navy);
+}
+
+/* ── RIGHT HEADER ─────────────────────────── */
+.header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+
+.welcome-text {
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+
+.avatar-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--navy-mid);
+  border: 2px solid var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.avatar-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: var(--cream);
+}
+
+.profile-label {
+  display: block;
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.btn-logout {
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: .42rem 1.1rem;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: .2s;
+}
+
+.btn-logout:hover {
+  background: var(--red-light);
+}
+
+/* ── MAIN ─────────────────────────────────── */
+main {
+  width: 95%;
+  max-width: 1200px;
+  margin: auto;
+  padding-bottom: 2rem;
+}
+
+/* ── REQUEST CONTAINER ────────────────────── */
+.request-container {
+  background: var(--card-bg);
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 3rem 4rem;
+  box-shadow: var(--shadow-md);
+}
+
+/* ── FORM GRID ────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* ── FORM GROUP ───────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 1rem;
+  margin-bottom: .4rem;
+  color: #333;
+}
+
+/* ── INPUTS ───────────────────────────────── */
+select,
+input,
+textarea {
+  font-family: 'Source Sans 3', sans-serif;
+  border: 2px solid #8f8f8f;
+  background: #efefef;
+  padding: .8rem 1rem;
+  font-size: .95rem;
+  border-radius: 2px;
+  outline: none;
+  box-shadow: 0 3px 7px rgba(0,0,0,.15);
+}
+
+textarea {
+  resize: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--navy);
+}
+
+/* ── FULL WIDTH ───────────────────────────── */
+.full-width {
+  margin-bottom: 2rem;
+}
+
+/* ── BOTTOM ROW ───────────────────────────── */
+.bottom-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* ── BUTTONS ──────────────────────────────── */
+.buttons {
+  display: flex;
+  gap: 1rem;
+  margin: 0 auto;
+}
+
+.btn-cancel,
+.btn-submit {
+  border: none;
+  padding: .6rem 1.3rem;
+  border-radius: 8px;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  box-shadow: var(--shadow-sm);
+  transition: .2s;
+}
+
+.btn-cancel {
+  background: var(--red);
+}
+
+.btn-cancel:hover {
+  background: var(--red-light);
+}
+
+.btn-submit {
+  background: var(--green);
+}
+
+.btn-submit:hover {
+  background: var(--green-light);
+}
+
+/* ── RETURN DATE ──────────────────────────── */
+.return-date {
+  width: 180px;
+}
+
+/* ── FOOTER ───────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: .8rem;
+  color: #000;
+}
+
+/* ── RESPONSIVE ───────────────────────────── */
+@media (max-width: 1000px) {
+
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bottom-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .return-date {
+    width: 100%;
+  }
+}
+
+@media (max-width: 650px) {
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  header {
+    padding: 15px;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  nav {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .request-container {
+    padding: 2rem;
+  }
+}

@@ -1,0 +1,244 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #d6dde3;
+  margin: 0;
+}
+
+/* MAIN CONTAINER */
+.container {
+  width: 900px;
+  height: 600px;
+  margin: 50px auto;
+  display: flex;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* LEFT SIDE */
+.left {
+  width: 50%;
+  background: #30364F;
+  color: white;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.logo {
+  width: 120px;
+  margin-bottom: 30px;
+}
+
+.left h2 {
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* RIGHT SIDE */
+.right {
+  width: 50%;
+  background: #F0F0DB;
+  padding: 30px 40px;
+  border-radius: 0px 20px 20px 0;
+  overflow-y: auto;
+}
+
+.right h2 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+}
+
+.subtitle {
+  font-size: 12px;
+  margin-bottom: 14px;
+  margin-top: 0;
+}
+
+/* REQUIRED ASTERISK */
+.required {
+  color: red;
+  margin-left: 1px;
+}
+
+/* LABELS */
+label {
+  font-size: 13px;
+  display: block;
+  margin-bottom: 3px;
+}
+
+/* FIRST NAME & LAST NAME ROW */
+.name-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.name-field {
+  flex: 1;
+}
+
+.name-field input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #aaa;
+  background: #e8e8d8;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* FULL-WIDTH INPUTS */
+.full-input {
+  width: 100%;
+  padding: 8px 12px;
+  margin: 0 0 10px 0;
+  border-radius: 20px;
+  border: 1px solid #aaa;
+  background: #e8e8d8;
+  box-sizing: border-box;
+  display: block;
+}
+
+/* PASSWORD FIELD */
+.password {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.password input {
+  width: 100%;
+  padding: 8px 40px 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #aaa;
+  background: #e8e8d8;
+  box-sizing: border-box;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* VALID ID ROW */
+.valid-id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.valid-id-row label {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.id-type {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+  background: #e8e8d8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* UPLOAD ROW */
+.upload-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.upload-btn {
+  padding: 6px 20px;
+  border-radius: 8px;
+  border: 1px solid #aaa;
+  background: #e8e8d8;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.upload-btn:hover {
+  background: #d0d0c0;
+}
+
+/* LOGIN LINK */
+.login-link {
+  font-size: 11px;
+  margin: 0;
+  text-align: center;
+}
+
+.login-link a {
+  color: #000000;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+/* REGISTER BUTTON */
+.button-link {
+  display: block;
+  margin: 5px auto 0;
+  padding: 10px 30px;
+  border: 2px solid #000000;
+  border-radius: 10px;
+  background: #30364F;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.button-link	:hover {
+  background-color: #000000;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* ROLE */
+.role-brgy-row label {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.role-brgy-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: 20px;
+}
+
+.role-type {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+  background: #e8e8d8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.register-link {
+   text-align: center;
+   font-size: 11px;
+}

@@ -1,0 +1,385 @@
+/* ══════════════════════════════════════════════
+   Barangay Tiniguiban – My Request Page
+   ══════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ── VARIABLES ─────────────────────────────── */
+:root {
+
+  --cream:       #f5f0e8;
+  --cream-dark:  #ede6d6;
+
+  --card-bg:     #D9D9D9;
+  --card-border: #b5b5b5;
+
+  --navy:        #1a2535;
+  --navy-mid:    #2c3e55;
+
+  --red:         #7a1a1a;
+  --red-light:   #9e2020;
+
+  --amber:       #d99a00;
+
+  --green:       #006615;
+  --green-light: #00851d;
+
+  --text-main:   #1e2830;
+  --text-muted:  #5a6a76;
+
+  --shadow-sm:   0 2px 8px rgba(0,0,0,.12);
+  --shadow-md:   0 4px 18px rgba(0,0,0,.16);
+
+  --radius-sm:   10px;
+  --radius-md:   18px;
+  --radius-lg:   35px;
+}
+
+/* ── BODY ─────────────────────────────────── */
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: #ACBAC4;
+  min-height: 100vh;
+  color: var(--text-main);
+}
+
+/* ═════════════════ HEADER ═════════════════ */
+header {
+  width: 95%;
+  max-width: 1300px;
+
+  margin: 25px auto;
+
+  padding: 12px 30px;
+
+  background: var(--cream);
+
+  border-radius: 24px;
+
+  box-shadow: var(--shadow-md);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── LOGO ─────────────────────────────────── */
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+}
+
+.logo-circle {
+  width: 60px;
+  height: 60px;
+
+  border-radius: 50%;
+
+  overflow: hidden;
+
+  border: 3px solid var(--navy);
+
+  background: var(--navy-mid);
+
+  flex-shrink: 0;
+}
+
+.logo-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-text h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  color: var(--navy);
+}
+
+.brand-text p {
+  font-size: .72rem;
+  color: var(--text-muted);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* ── NAVIGATION ───────────────────────────── */
+nav {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  margin-left: 1.5rem;
+}
+
+nav a {
+  text-decoration: none;
+  color: var(--text-muted);
+
+  padding: .35rem .8rem;
+
+  border-radius: var(--radius-sm);
+
+  font-size: .88rem;
+  font-weight: 600;
+
+  transition: .2s;
+
+  position: relative;
+}
+
+nav a:hover {
+  background: var(--cream-dark);
+  color: var(--navy);
+}
+
+nav a.active {
+  color: var(--navy);
+}
+
+nav a.active::after {
+  content: '';
+
+  position: absolute;
+
+  left: .8rem;
+  right: .8rem;
+  bottom: -2px;
+
+  height: 2px;
+
+  background: var(--navy);
+}
+
+/* ── HEADER RIGHT ─────────────────────────── */
+.header-right {
+  margin-left: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.welcome-text {
+  font-size: .9rem;
+  color: var(--text-muted);
+}
+
+.welcome-text strong {
+  color: var(--navy);
+}
+
+.profile-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-btn {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+
+  background: var(--navy-mid);
+
+  border: 2px solid var(--navy);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-btn svg {
+  width: 24px;
+  height: 24px;
+
+  fill: var(--cream);
+}
+
+.profile-label {
+  font-size: .72rem;
+  margin-top: 2px;
+}
+
+.btn-logout {
+  border: none;
+
+  padding: .5rem 1rem;
+
+  border-radius: 20px;
+
+  background: var(--red);
+
+  color: white;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: .2s;
+}
+
+.btn-logout:hover {
+  background: var(--red-light);
+}
+
+/* ═════════════════ MAIN ═════════════════ */
+main {
+  width: 95%;
+  max-width: 1100px;
+
+  margin: 90px auto 0;
+}
+
+/* ── TITLE ───────────────────────────────── */
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+
+  margin-bottom: 1rem;
+
+  color: #333;
+}
+
+/* ═════════════════ TABLE CARD ═════════════════ */
+.table-card {
+  background: var(--card-bg);
+
+  border: 2px solid var(--card-border);
+
+  border-radius: var(--radius-lg);
+
+  padding: 2rem 1.5rem;
+
+  box-shadow: var(--shadow-md);
+}
+
+/* ── TABLE ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead tr {
+  border-bottom: none;
+}
+
+th {
+  padding-bottom: 1.8rem;
+
+  text-align: center;
+
+  font-size: 1rem;
+  font-weight: 600;
+
+  color: #333;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(0,0,0,.35);
+}
+
+tbody tr:last-child {
+  border-bottom: none;
+}
+
+td {
+  padding: 1.6rem .8rem;
+  text-align: center;
+}
+
+/* ── PLACEHOLDER BARS ────────────────────── */
+.placeholder {
+  height: 22px;
+
+  margin: auto;
+
+  border-radius: 30px;
+
+  background: #b0b0b0;
+}
+
+.placeholder.long {
+  width: 130px;
+}
+
+.placeholder.mid {
+  width: 110px;
+}
+
+/* ── STATUS PILLS ────────────────────────── */
+.status-pill {
+  display: inline-block;
+
+  min-width: 130px;
+
+  padding: .45rem 1rem;
+
+  border-radius: 30px;
+
+  color: white;
+
+  font-size: .9rem;
+}
+
+.rejected {
+  background: var(--red);
+}
+
+.pending {
+  background: var(--amber);
+}
+
+.approved {
+  background: var(--green);
+}
+
+/* ── BUTTON ──────────────────────────────── */
+.button-wrap {
+  text-align: center;
+  margin-top: 2.5rem;
+}
+
+.btn-return {
+  background: var(--navy-mid);
+
+  color: white;
+
+  border: 2px solid #111;
+
+  border-radius: 30px;
+
+  padding: .8rem 1.4rem;
+
+  font-size: .9rem;
+
+  cursor: pointer;
+
+  box-shadow: var(--shadow-sm);
+
+  transition: .2s;
+}
+
+.btn-return:hover {
+  background: var(--navy);
+}
+
+/* ── FOOTER ──────────────────────────────── */
+footer {
+  text-align: center;
+
+  padding: 2rem;
+
+  font-size: .85rem;
+
+  color: #333;
+}

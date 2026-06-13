@@ -1,0 +1,161 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #d6dde3;
+  margin: 0;
+}
+
+/* MAIN CONTAINER */
+.container {
+  width: 900px;
+  height: 600px;
+  margin: 50px auto;
+  display: flex;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* LEFT SIDE */
+.left {
+  width: 50%;
+  background: #30364F;
+  color: white;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.logo {
+  width: 120px;
+  margin-bottom: 30px;
+}
+
+.left h2 {
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+/* RIGHT SIDE */
+.right {
+  width: 50%;
+  background: #F0F0DB;
+  padding: 40px;
+  border-radius: 0px 20px 20px 0;
+}
+
+.subtitle {
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+/* ROLE BUTTONS */
+.role {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 20px;
+}
+
+
+.role button {
+  flex: 1;
+  padding: 10px;
+  background: #000000;
+  opacity: 0.5;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role button:hover {
+  background-color: #000000;
+  opacity: 0.75;	
+  cursor: pointer;
+}
+
+.role button.active {
+  background: #30364F;
+  opacity: 1;
+  font-weight: bold;
+  border: 1px solid #30364F;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* INPUTS */
+label {
+  font-size: 13px;
+}
+
+
+/* LEFT BUTTON */
+.user {
+   border-radius: 6px 0px 0px 6px;
+}
+
+/* RIGHT BUTTON */
+.admin	 {
+   border-radius: 0px 6px 6px 0px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0 15px;
+  border-radius: 20px;
+  border: 1px solid #aaa;
+}
+
+/* PASSWORD FIELD */
+.password {
+  position: relative;
+}
+
+.password span {
+  position: absolute;
+  right: 15px;
+  top: 40%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* LINKS */
+.forgot {
+  font-size: 11px;
+  display: block;
+  margin-bottom: 15px;
+  text-align: right;
+  color: #000000;
+}
+
+.register {
+  font-size: 12px;
+  text-align: center;
+}
+
+/* LOGIN BUTTON */
+.login-btn {
+  display: block;
+  margin: 15px auto;
+  padding: 10px 30px;
+  border: none;
+  border-radius: 10px;
+  background: #30364F;
+  color: white;
+  cursor: pointer;
+  border: 2px solid #000000;
+}
+
+.login-btn:hover {
+  background-color: #000000;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  font-size: 12px;
+  margin-top: 10px;
+}
