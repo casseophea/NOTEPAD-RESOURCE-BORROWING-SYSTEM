@@ -1,5 +1,5 @@
 <?php
-// logout.php - Session Destroy for Barangay Tiniguiban Resource Borrowing System
+
 require_once 'db_connect.php';
 
 // Delete session from database log

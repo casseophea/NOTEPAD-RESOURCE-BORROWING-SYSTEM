@@ -1,5 +1,5 @@
 <?php
-// upload_id.php - Server-side ID Photo Upload for Barangay Tiniguiban Resource Borrowing System
+
 require_once 'db_connect.php';
 
 $message = '';
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mkdir($target_dir, 0777, true);
     }
     
-    $side = $_POST['side'] ?? ''; // 'front' or 'back'
+    $side = $_POST['side'] ?? '';
     $file_input_name = $side . '_file';
     
     if (($side === 'front' || $side === 'back') && isset($_FILES[$file_input_name])) {

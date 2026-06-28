@@ -1,5 +1,5 @@
 <?php
-// register.php - Secure User Signup for Barangay Tiniguiban Resource Borrowing System
+
 require_once 'db_connect.php';
 
 $error = '';

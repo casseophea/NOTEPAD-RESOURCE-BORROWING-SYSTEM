@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $item_name = $_POST['item_name'] ?? '';
     $quantity = intval($_POST['quantity'] ?? 0);
     $borrow_date = $_POST['borrow_date'] ?? '';
+    $borrow_time = $_POST['borrow_time'] ?? '';
     $return_date = $_POST['return_date'] ?? '';
     $return_time = $_POST['return_time'] ?? '';
     $purpose = trim($_POST['purpose'] ?? '');
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user_id = $_SESSION['user_id'];
         $status = 'Pending';
         
-        $stmt = $conn->prepare("INSERT INTO requests (request_code, user_id, item_name, quantity, borrow_date, return_date, return_time, purpose, notes, status) VALUES (:code, :uid, :item, :qty, :bdate, :rdate, :rtime, :purpose, :notes, :status)");
+        $stmt = $conn->prepare("INSERT INTO requests (request_code, user_id, item_name, quantity, borrow_date, borrow_time, return_date, return_time, purpose, notes, status) VALUES (:code, :uid, :item, :qty, :bdate, :btime, :rdate, :rtime, :purpose, :notes, :status)");
         
         $success = $stmt->execute([
             'code' => $req_code,
@@ -40,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'item' => $item_name,
             'qty' => $quantity,
             'bdate' => $borrow_date,
+            'btime' => $borrow_time ?: null,
             'rdate' => $return_date,
             'rtime' => $return_time ?: null,
             'purpose' => $purpose,
@@ -81,123 +83,13 @@ $inventory_list = $items_res->fetchAll(PDO::FETCH_ASSOC);
       font-size: 13px;
       text-align: center;
     }
-    .hamburger-toggle {
-        display: none;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 5px;
-        width: 35px;
-        height: 35px;
-        margin-left: auto;
-    }
-    .hamburger-toggle svg {
-        width: 100%;
-        height: 100%;
-        fill: #1a2535;
-    }
-    
-    @media (max-width: 768px) {
-        .header-inner {
-            justify-content: space-between;
-            position: relative;
-        }
-        .hamburger-toggle {
-            display: block;
-        }
-        header nav, header .header-right {
-            display: none !important;
-            width: 100%;
-        }
-        .header-inner.menu-open nav {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            width: 100%;
-            margin-left: 0;
-        }
-        .header-inner.menu-open .header-right {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-top: 15px;
-            width: 100%;
-            border-top: 1px solid #ede6d6;
-            padding-top: 15px;
-            margin-left: 0;
-        }
-        .header-inner.menu-open nav a {
-            width: 100%;
-            text-align: center;
-            padding: 8px;
-        }
-        .header-inner.menu-open nav a::after {
-            display: none !important;
-        }
-    }
   </style>
-  <script>
-      function toggleMenu() {
-          const inner = document.querySelector('.header-inner');
-          inner.classList.toggle('menu-open');
-      }
-  </script>
 </head>
 <body>
 
-<!-- ═══════════════════ HEADER ═══════════════════ -->
-<header>
-  <div class="header-inner">
+<?php include 'navigation.php'; ?>
 
-    <!-- LOGO -->
-    <div class="logo-wrap">
-      <div class="logo-circle">
-        <img src="logo.png" alt="Barangay Logo">
-      </div>
-      <div class="brand-text">
-        <h1>BARANGAY TINIGUIBAN</h1>
-        <p>Resource Borrowing System</p>
-      </div>
-    </div>
-
-    <!-- Hamburger Toggle Button -->
-    <button class="hamburger-toggle" onclick="toggleMenu()" aria-label="Toggle Menu">
-        <svg viewBox="0 0 24 24">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-        </svg>
-    </button>
-
-    <!-- NAVIGATION -->
-    <nav>
-      <a href="user_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'user_page.php') ? 'active' : ''; ?>">Home</a>
-      <a href="user_inventory.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'user_inventory.php') ? 'active' : ''; ?>">Inventory</a>
-      <a href="request_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'request_page.php') ? 'active' : ''; ?>">Request</a>
-      <a href="my_request_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'my_request_page.php') ? 'active' : ''; ?>">My Request</a>
-    </nav>
-
-    <!-- RIGHT SIDE -->
-    <div class="header-right">
-      <span class="welcome-text">
-        Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
-      </span>
-      <a href="profile.php" class="profile-wrap" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
-        <div class="avatar-btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-          </svg>
-        </div>
-        <span class="profile-label">Profile</span>
-      </a>
-      <button class="btn-logout" onclick="if(confirm('Are you sure you want to logout?')) window.location.href='logout.php';">Logout</button>
-    </div>
-
-  </div>
-</header>
-
-<!-- ═══════════════════ MAIN ═══════════════════ -->
+<!-- MAIN -->
 <main>
 
   <section class="request-container">
@@ -247,6 +139,18 @@ $inventory_list = $items_res->fetchAll(PDO::FETCH_ASSOC);
           <input type="date" name="borrow_date" id="borrowDate" required>
         </div>
 
+        <!-- BORROW TIME -->
+        <div class="form-group">
+          <label>Borrow Time:</label>
+          <input type="time" name="borrow_time" id="borrowTime">
+        </div>
+
+        <!-- RETURN DATE -->
+        <div class="form-group">
+          <label>Return Date:</label>
+          <input type="date" name="return_date" id="returnDate" required>
+        </div>
+
         <!-- RETURN TIME -->
         <div class="form-group">
           <label>Exact return time:</label>
@@ -268,16 +172,11 @@ $inventory_list = $items_res->fetchAll(PDO::FETCH_ASSOC);
       </div>
 
       <!-- BOTTOM SECTION -->
-      <div class="bottom-row">
+      <div class="bottom-row" style="justify-content: center;">
 
         <div class="buttons">
           <button type="button" class="btn-cancel" onclick="window.location.href='user_page.php'">Cancel</button>
           <button type="submit" class="btn-submit">Submit</button>
-        </div>
-
-        <div class="form-group return-date">
-          <label>Return Date:</label>
-          <input type="date" name="return_date" id="returnDate" required>
         </div>
 
       </div>
@@ -287,7 +186,7 @@ $inventory_list = $items_res->fetchAll(PDO::FETCH_ASSOC);
 
 </main>
 
-<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<!-- FOOTER -->
 <footer>
   &copy; 2026 Barangay Tiniguiban
 </footer>
@@ -298,6 +197,12 @@ $inventory_list = $items_res->fetchAll(PDO::FETCH_ASSOC);
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('borrowDate').value = today;
     document.getElementById('returnDate').value = today;
+    
+    // Set default borrow time to current time
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('borrowTime').value = `${hours}:${minutes}`;
   });
 
   function updateQuantities() {

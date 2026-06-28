@@ -210,120 +210,12 @@ $items_data = $inv_res->fetchAll(PDO::FETCH_ASSOC);
       padding: 8px 15px;
       border-radius: 6px;
     }
-    .hamburger-toggle {
-        display: none;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 5px;
-        width: 35px;
-        height: 35px;
-        margin-left: auto;
-    }
-    .hamburger-toggle svg {
-        width: 100%;
-        height: 100%;
-        fill: #1a2535;
-    }
-    
-    @media (max-width: 768px) {
-        .header-inner {
-            justify-content: space-between;
-            position: relative;
-        }
-        .hamburger-toggle {
-            display: block;
-        }
-        header nav, header .header-right {
-            display: none !important;
-            width: 100%;
-        }
-        .header-inner.menu-open nav {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            width: 100%;
-            margin-left: 0;
-        }
-        .header-inner.menu-open .header-right {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-top: 15px;
-            width: 100%;
-            border-top: 1px solid #ede6d6;
-            padding-top: 15px;
-            margin-left: 0;
-        }
-        .header-inner.menu-open nav a {
-            width: 100%;
-            text-align: center;
-            padding: 8px;
-        }
-        .header-inner.menu-open nav a::after {
-            display: none !important;
-        }
     }
   </style>
-  <script>
-      function toggleMenu() {
-          const inner = document.querySelector('.header-inner');
-          inner.classList.toggle('menu-open');
-      }
-  </script>
 </head>
 <body>
 
-  <header>
-  <div class="header-inner">
-
-    <!-- LOGO -->
-    <div class="logo-wrap">
-      <div class="logo-circle">
-        <img src="logo.png" alt="Barangay Logo">
-      </div>
-      <div class="brand-text">
-        <h1>BARANGAY TINIGUIBAN</h1>
-        <p>Resource Borrowing System</p>
-      </div>
-    </div>
-
-    <!-- Hamburger Toggle Button -->
-    <button class="hamburger-toggle" onclick="toggleMenu()" aria-label="Toggle Menu">
-        <svg viewBox="0 0 24 24">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-        </svg>
-    </button>
-
-    <!-- NAVIGATION -->
-    <nav>
-      <a href="admin_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'admin_page.php') ? 'active' : ''; ?>">Home</a>
-      <a href="admin_inventory.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'admin_inventory.php') ? 'active' : ''; ?>">Inventory</a>
-      <a href="manage_request.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'manage_request.php') ? 'active' : ''; ?>">Manage Request</a>
-      <a href="manage_users.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'manage_users.php') ? 'active' : ''; ?>">Manage Users</a>
-    </nav>
-
-    <!-- RIGHT SIDE -->
-    <div class="header-right">
-      <span class="welcome-text">
-        Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
-      </span>
-      <a href="profile.php" class="profile-wrap" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
-        <div class="avatar-btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-          </svg>
-        </div>
-        <span class="profile-label">Profile</span>
-      </a>
-      <button class="btn-logout" onclick="if(confirm('Are you sure you want to logout?')) window.location.href='logout.php';">Logout</button>
-    </div>
-
-  </div>
-</header>
+  <?php include 'navigation.php'; ?>
 
   <!-- MAIN -->
   <main>
