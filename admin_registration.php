@@ -1,5 +1,5 @@
 <?php
-// admin_registration.php - Secure Admin Signup for Barangay Tiniguiban Resource Borrowing System
+
 require_once 'db_connect.php';
 
 $error = '';
@@ -10,30 +10,46 @@ $upload_style = $id_uploaded ? 'background: #006615; color: white; border-color:
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
+    $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     $contact_number = trim($_POST['contact_number'] ?? '');
     $valid_id_type = $_POST['id_type'] ?? '';
     $barangay_role = $_POST['barangay_role'] ?? '';
+    $admin_key = trim($_POST['admin_key'] ?? '');
 
-    if (empty($first_name) || empty($last_name) || empty($email) || empty($password) || empty($contact_number) || empty($valid_id_type) || empty($barangay_role)) {
+    // Password Strength Checks
+    $has_uppercase = preg_match('@[A-Z]@', $password);
+    $has_lowercase = preg_match('@[a-z]@', $password);
+    $has_number    = preg_match('@[0-9]@', $password);
+    $has_special   = preg_match('@[^\w]@', $password);
+
+    if (empty($first_name) || empty($last_name) || empty($username) || empty($email) || empty($password) || empty($contact_number) || empty($valid_id_type) || empty($barangay_role) || empty($admin_key)) {
         $error = 'Please fill in all required fields marked with an asterisk (*).';
+    } elseif ($admin_key !== ADMIN_REGISTRATION_KEY) {
+        $error = 'Invalid administrative security key. Only authorized officials can register.';
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match.';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters long.';
+    } elseif (strlen($password) < 8 || !$has_uppercase || !$has_lowercase || !$has_number || !$has_special) {
+        $error = 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
     } elseif (!$id_uploaded) {
         $error = 'Please upload your Valid ID front and back photos before registering.';
     } else {
         // Check if email already exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $res = $stmt->get_result();
+        $stmt_email = $conn->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
+        $stmt_email->execute(['email' => $email]);
+        $email_exists = $stmt_email->fetchColumn() > 0;
         
-        if ($res && $res->num_rows > 0) {
+        // Check if username already exists
+        $stmt_un = $conn->prepare("SELECT COUNT(*) FROM users WHERE username = :un");
+        $stmt_un->execute(['un' => $username]);
+        $un_exists = $stmt_un->fetchColumn() > 0;
+        
+        if ($email_exists) {
             $error = 'Email is already registered. Please login instead.';
+        } elseif ($un_exists) {
+            $error = 'Username is already taken. Please choose another one.';
         } else {
             // Hash password and insert user into DB
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
@@ -41,15 +57,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id_front = $_SESSION['id_front_path'] ?? null;
             $id_back = $_SESSION['id_back_path'] ?? null;
             
-            $insert = $conn->prepare("INSERT INTO users (first_name, last_name, email, password, contact_number, valid_id_type, role, barangay_role, id_front_path, id_back_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $insert->bind_param("ssssssssss", $first_name, $last_name, $email, $password_hash, $contact_number, $valid_id_type, $role, $barangay_role, $id_front, $id_back);
+            $insert = $conn->prepare("INSERT INTO users (username, first_name, last_name, email, password, contact_number, valid_id_type, role, barangay_role, id_front_path, id_back_path) VALUES (:username, :first_name, :last_name, :email, :password, :contact_number, :valid_id_type, :role, :barangay_role, :id_front, :id_back)");
             
-            if ($insert->execute()) {
+            $success = $insert->execute([
+                'username' => $username,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
+                'password' => $password_hash,
+                'contact_number' => $contact_number,
+                'valid_id_type' => $valid_id_type,
+                'role' => $role,
+                'barangay_role' => $barangay_role,
+                'id_front' => $id_front,
+                'id_back' => $id_back
+            ]);
+            
+            if ($success) {
+                $user_id = $conn->lastInsertId();
+                
                 // Set session immediately on register
-                $_SESSION['user_id'] = $insert->insert_id;
+                $_SESSION['user_id'] = $user_id;
                 $_SESSION['user_name'] = $first_name . ' ' . $last_name . ' (' . $barangay_role . ')';
                 $_SESSION['email'] = $email;
                 $_SESSION['role'] = $role;
+                $_SESSION['username'] = $username;
+                $_SESSION['last_activity'] = time();
+                
+                // Track session in database
+                $sess_stmt = $conn->prepare("INSERT INTO user_sessions (user_id, session_id) VALUES (:uid, :sid)");
+                $sess_stmt->execute(['uid' => $user_id, 'sid' => session_id()]);
                 
                 // Clear photo session paths
                 unset($_SESSION['id_front_path']);
@@ -61,9 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error = 'Failed to register account. Please try again.';
             }
-            $insert->close();
         }
-        $stmt->close();
     }
 }
 ?>
@@ -71,8 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Register</title>
-  <link rel="stylesheet" href="register.css">
+  <link rel="stylesheet" href="register.css?v=<?php echo time(); ?>">
   <style>
     .error-msg {
       background: #7a1a1a;
@@ -116,12 +152,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </div>
 
+      <label>Username:<span class="required">*</span></label>
+      <input type="text" name="username" class="full-input" required value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
+
       <label>Email:<span class="required">*</span></label>
       <input type="email" name="email" class="full-input" required value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
 
       <label>Password:<span class="required">*</span></label>
       <div class="password">
-        <input type="password" name="password" id="password" required>
+        <input type="password" name="password" id="password" required placeholder="Min 8 chars, 1 upper, 1 lower, 1 num, 1 special">
         <span class="eye-icon" onclick="togglePassword('password', this)">&#128065;</span>
       </div>
 
@@ -159,6 +198,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </select>
       </div>
 
+      <label>Administrative Security Key:<span class="required">*</span></label>
+      <input type="password" name="admin_key" class="full-input" required placeholder="Enter secret passcode to authorize registration">
+
       <div class="upload-row">
         <button type="button" class="upload-btn" style="<?php echo $upload_style; ?>" onclick="saveAndUpload()"><?php echo $upload_text; ?></button>
         <p class="login-link">Already have an account? <a href="login.php">Login Now</a></p>
@@ -182,6 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       const fields = {
         first_name: document.querySelector('input[name="first_name"]').value,
         last_name: document.querySelector('input[name="last_name"]').value,
+        username: document.querySelector('input[name="username"]').value,
         email: document.querySelector('input[name="email"]').value,
         password: document.querySelector('input[name="password"]').value,
         confirm_password: document.querySelector('input[name="confirm_password"]').value,
@@ -203,6 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const fields = JSON.parse(saved);
         if (fields.first_name !== undefined) document.querySelector('input[name="first_name"]').value = fields.first_name;
         if (fields.last_name !== undefined) document.querySelector('input[name="last_name"]').value = fields.last_name;
+        if (fields.username !== undefined) document.querySelector('input[name="username"]').value = fields.username;
         if (fields.email !== undefined) document.querySelector('input[name="email"]').value = fields.email;
         if (fields.password !== undefined) document.querySelector('input[name="password"]').value = fields.password;
         if (fields.confirm_password !== undefined) document.querySelector('input[name="confirm_password"]').value = fields.confirm_password;
@@ -243,4 +287,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 </script>
 </body>
-</html>>
+</html>

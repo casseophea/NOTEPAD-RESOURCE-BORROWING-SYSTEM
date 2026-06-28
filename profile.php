@@ -12,6 +12,15 @@ $user_id = $_SESSION['user_id'];
 $message = '';
 $error = '';
 
+// Fetch current user details from DB using PDO
+$user_stmt = $conn->prepare("SELECT * FROM users WHERE id = :id LIMIT 1");
+$user_stmt->execute(['id' => $user_id]);
+$user = $user_stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user) {
+    die("User not found.");
+}
+
 // Process Profile Updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_number = trim($_POST['contact_number'] ?? '');
@@ -21,58 +30,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($contact_number)) {
         $error = 'Contact number cannot be empty.';
     } else {
-        $conn->begin_transaction();
-        $update_success = true;
-        
-        // Update contact number
-        $stmt = $conn->prepare("UPDATE users SET contact_number = ? WHERE id = ?");
-        $stmt->bind_param("si", $contact_number, $user_id);
-        if (!$stmt->execute()) {
-            $update_success = false;
-        }
-        $stmt->close();
-        
-        // If password change is requested
-        if ($update_success && !empty($password)) {
-            if ($password !== $confirm_password) {
-                $error = 'New passwords do not match.';
-                $update_success = false;
-            } elseif (strlen($password) < 6) {
-                $error = 'Password must be at least 6 characters long.';
-                $update_success = false;
-            } else {
-                $password_hash = password_hash($password, PASSWORD_BCRYPT);
-                $stmt_pwd = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-                $stmt_pwd->bind_param("si", $password_hash, $user_id);
-                if (!$stmt_pwd->execute()) {
+        try {
+            $conn->beginTransaction();
+            $update_success = true;
+            
+            // Update contact number
+            $stmt = $conn->prepare("UPDATE users SET contact_number = :contact WHERE id = :id");
+            $stmt->execute(['contact' => $contact_number, 'id' => $user_id]);
+            
+            // If password change is requested
+            if (!empty($password)) {
+                $has_uppercase = preg_match('@[A-Z]@', $password);
+                $has_lowercase = preg_match('@[a-z]@', $password);
+                $has_number    = preg_match('@[0-9]@', $password);
+                $has_special   = preg_match('@[^\w]@', $password);
+
+                if ($password !== $confirm_password) {
+                    $error = 'New passwords do not match.';
                     $update_success = false;
-                    $error = 'Failed to update password.';
+                } elseif (strlen($password) < 8 || !$has_uppercase || !$has_lowercase || !$has_number || !$has_special) {
+                    $error = 'New password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.';
+                    $update_success = false;
+                } else {
+                    $password_hash = password_hash($password, PASSWORD_BCRYPT);
+                    $stmt_pwd = $conn->prepare("UPDATE users SET password = :pwd WHERE id = :id");
+                    $stmt_pwd->execute(['pwd' => $password_hash, 'id' => $user_id]);
                 }
-                $stmt_pwd->close();
             }
-        }
-        
-        if ($update_success) {
-            $conn->commit();
-            $message = 'Profile updated successfully!';
-        } else {
-            $conn->rollback();
-            if (empty($error)) {
-                $error = 'Failed to save updates. Connection error.';
+            
+            if ($update_success) {
+                $conn->commit();
+                $message = 'Profile updated successfully!';
+                
+                // Fetch refreshed user details
+                $user_stmt->execute(['id' => $user_id]);
+                $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
+            } else {
+                $conn->rollBack();
             }
+        } catch (Exception $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            $error = 'Failed to save updates: ' . $e->getMessage();
         }
     }
-}
-
-// Fetch current user details from DB
-$user_stmt = $conn->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
-$user_stmt->bind_param("i", $user_id);
-$user_stmt->execute();
-$user = $user_stmt->get_result()->fetch_assoc();
-$user_stmt->close();
-
-if (!$user) {
-    die("User not found.");
 }
 
 // Determine Home Link depending on role
@@ -86,21 +88,21 @@ $home_link = ($user['role'] === 'admin') ? 'admin_page.php' : 'user_page.php';
     <title>My Profile - Barangay Tiniguiban</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="user_page.css">
+    <link rel="stylesheet" href="user_page.css?v=<?php echo time(); ?>">
     <style>
         .profile-container {
-            background: var(--card-bg);
-            border: 1.5px solid var(--card-border);
-            border-radius: var(--radius-large);
+            background: #d9d9d9;
+            border: 1.5px solid #c8c2b4;
+            border-radius: 22px;
             padding: 30px;
             max-width: 600px;
             margin: 20px auto;
-            box-shadow: var(--shadow-medium);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16);
         }
         .profile-container h2 {
             margin-top: 0;
-            color: var(--navy);
-            border-bottom: 2px solid var(--navy);
+            color: #1a2535;
+            border-bottom: 2px solid #1a2535;
             padding-bottom: 10px;
             margin-bottom: 20px;
             font-size: 22px;
@@ -125,7 +127,7 @@ $home_link = ($user['role'] === 'admin') ? 'admin_page.php' : 'user_page.php';
             outline: none;
         }
         .form-group input:focus {
-            border-color: var(--navy);
+            border-color: #1a2535;
         }
         .form-group input:disabled {
             background: #dcdcd0;
@@ -182,56 +184,128 @@ $home_link = ($user['role'] === 'admin') ? 'admin_page.php' : 'user_page.php';
             background: #7a1a1a;
             color: white;
         }
+        .hamburger-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            width: 35px;
+            height: 35px;
+            margin-left: auto;
+        }
+        .hamburger-toggle svg {
+            width: 100%;
+            height: 100%;
+            fill: #1a2535;
+        }
+        
+        @media (max-width: 768px) {
+            .header-inner {
+                justify-content: space-between;
+                position: relative;
+            }
+            .hamburger-toggle {
+                display: block;
+            }
+            header nav, header .header-right {
+                display: none !important;
+                width: 100%;
+            }
+            .header-inner.menu-open nav {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin-top: 15px;
+                width: 100%;
+                margin-left: 0;
+            }
+            .header-inner.menu-open .header-right {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                margin-top: 15px;
+                width: 100%;
+                border-top: 1px solid #ede6d6;
+                padding-top: 15px;
+                margin-left: 0;
+            }
+            .header-inner.menu-open nav a {
+                width: 100%;
+                text-align: center;
+                padding: 8px;
+            }
+            .header-inner.menu-open nav a::after {
+                display: none !important;
+            }
+        }
     </style>
+    <script>
+        function toggleMenu() {
+            const inner = document.querySelector('.header-inner');
+            inner.classList.toggle('menu-open');
+        }
+    </script>
 </head>
 <body>
 
     <!-- Header -->
     <header>
-        <div class="header-inner">
+  <div class="header-inner">
 
-            <div class="logo-wrap">
-                <img src="logo.png" alt="Barangay Logo" class="logo">
+    <!-- LOGO -->
+    <div class="logo-wrap">
+      <div class="logo-circle">
+        <img src="logo.png" alt="Barangay Logo">
+      </div>
+      <div class="brand-text">
+        <h1>BARANGAY TINIGUIBAN</h1>
+        <p>Resource Borrowing System</p>
+      </div>
+    </div>
 
-                <div class="brand-text">
-                    <h1>BARANGAY TINIGUIBAN</h1>
-                    <p>Resource Borrowing System</p>
-                </div>
-            </div>
+    <!-- Hamburger Toggle Button -->
+    <button class="hamburger-toggle" onclick="toggleMenu()" aria-label="Toggle Menu">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+    </button>
 
-            <!-- Navigation -->
-            <nav>
-                <a href="<?php echo htmlspecialchars($home_link); ?>">Home</a>
-                <?php if ($user['role'] === 'admin'): ?>
-                    <a href="admin_inventory.php">Inventory</a>
-                    <a href="manage_request.php">Manage Request</a>
-                <?php else: ?>
-                    <a href="user_inventory.php">Inventory</a>
-                    <a href="request_page.php">Request</a>
-                    <a href="my_request_page.php">My Request</a>
-                <?php endif; ?>
-            </nav>
+    <!-- NAVIGATION -->
+    <nav>
+      <?php if ($user['role'] === 'admin'): ?>
+        <a href="admin_page.php">Home</a>
+        <a href="admin_inventory.php">Inventory</a>
+        <a href="manage_request.php">Manage Request</a>
+        <a href="manage_users.php">Manage Users</a>
+      <?php else: ?>
+        <a href="user_page.php">Home</a>
+        <a href="user_inventory.php">Inventory</a>
+        <a href="request_page.php">Request</a>
+        <a href="my_request_page.php">My Request</a>
+      <?php endif; ?>
+    </nav>
 
-            <!-- User Section -->
-            <div class="header-right">
-                <span class="welcome-text">
-                    Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
-                </span>
-                
-                <a href="profile.php" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
-                    <div class="avatar-btn" style="border-color: #000; background: #30364F;">
-                        <svg viewBox="0 0 24 24" style="fill: #F0F0DB;">
-                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                        </svg>
-                    </div>
-                    <span class="profile-label" style="font-weight: bold;">Profile</span>
-                </a>
-
-                <button class="btn-logout" onclick="window.location.href='logout.php'">Logout</button>
-            </div>
-
+    <!-- RIGHT SIDE -->
+    <div class="header-right">
+      <span class="welcome-text">
+        Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
+      </span>
+      <a href="profile.php" class="profile-wrap" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
+        <div class="avatar-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
         </div>
-    </header>
+        <span class="profile-label">Profile</span>
+      </a>
+      <button class="btn-logout" onclick="if(confirm('Are you sure you want to logout?')) window.location.href='logout.php';">Logout</button>
+    </div>
+
+  </div>
+</header>
 
     <!-- Main Content -->
     <main>
@@ -247,6 +321,11 @@ $home_link = ($user['role'] === 'admin') ? 'admin_page.php' : 'user_page.php';
             <?php endif; ?>
 
             <form method="POST" action="profile.php">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" value="<?php echo htmlspecialchars($user['username']); ?>" disabled>
+                </div>
+
                 <div class="form-group">
                     <label>First Name:</label>
                     <input type="text" value="<?php echo htmlspecialchars($user['first_name']); ?>" disabled>
@@ -281,7 +360,7 @@ $home_link = ($user['role'] === 'admin') ? 'admin_page.php' : 'user_page.php';
 
                 <div class="form-group" style="margin-top: 25px;">
                     <label>New Password (leave blank to keep current):</label>
-                    <input type="password" name="password" placeholder="Enter new password">
+                    <input type="password" name="password" placeholder="Min 8 chars, 1 upper, 1 lower, 1 num, 1 special">
                 </div>
 
                 <div class="form-group">

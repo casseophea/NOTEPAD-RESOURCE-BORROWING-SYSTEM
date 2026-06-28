@@ -11,82 +11,96 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $message = '';
 $error = '';
 
-// Handle Admin Decisions (Approve / Reject)
+// Handle Admin Decisions (Approve / Reject) using PDO
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['request_id'])) {
     $req_id = intval($_POST['request_id']);
-    $decision = $_POST['action']; // 'Approved' or 'Rejected'
+    $decision = $_POST['action']; // 'Approved', 'Rejected', 'pay_penalty', or 'waive_penalty'
     
-    if ($req_id > 0 && ($decision === 'Approved' || $decision === 'Rejected')) {
-        // Fetch request details
-        $stmt = $conn->prepare("SELECT item_name, quantity, status FROM requests WHERE id = ? LIMIT 1");
-        $stmt->bind_param("i", $req_id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        
-        if ($res && $res->num_rows > 0) {
-            $req = $res->fetch_assoc();
+    if ($req_id > 0) {
+        if ($decision === 'Approved' || $decision === 'Rejected') {
+            // Fetch request details
+            $stmt = $conn->prepare("SELECT item_name, quantity, status FROM requests WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $req_id]);
+            $req = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($req['status'] === 'Pending') {
-                $conn->begin_transaction();
-                
-                // Update request status
-                $update = $conn->prepare("UPDATE requests SET status = ? WHERE id = ?");
-                $update->bind_param("si", $decision, $req_id);
-                $update_success = $update->execute();
-                $update->close();
-                
-                $inventory_success = true;
-                
-                if ($decision === 'Approved') {
-                    // Check if inventory has enough available
-                    $inv_check = $conn->prepare("SELECT available FROM inventory WHERE name = ? LIMIT 1");
-                    $inv_check->bind_param("s", $req['item_name']);
-                    $inv_check->execute();
-                    $inv_res = $inv_check->get_result()->fetch_assoc();
-                    $inv_check->close();
-                    
-                    if ($inv_res && $inv_res['available'] >= $req['quantity']) {
-                        // Deduct available count
-                        $deduct = $conn->prepare("UPDATE inventory SET available = available - ? WHERE name = ?");
-                        $deduct->bind_param("is", $req['quantity'], $req['item_name']);
-                        $inventory_success = $deduct->execute();
-                        $deduct->close();
+            if ($req) {
+                if ($req['status'] === 'Pending') {
+                    try {
+                        $conn->beginTransaction();
                         
-                        // Sync status
-                        $sync = $conn->prepare("UPDATE inventory SET status = CASE WHEN available = 0 THEN 'Not Available' WHEN available <= 3 THEN 'Limited' ELSE 'Available' END WHERE name = ?");
-                        $sync->bind_param("s", $req['item_name']);
-                        $sync->execute();
-                        $sync->close();
-                    } else {
-                        $inventory_success = false;
-                        $error = 'Insufficient inventory availability to approve this request.';
+                        // Update request status
+                        $update = $conn->prepare("UPDATE requests SET status = :status WHERE id = :id");
+                        $update_success = $update->execute(['status' => $decision, 'id' => $req_id]);
+                        
+                        $inventory_success = true;
+                        
+                        if ($decision === 'Approved') {
+                            // Check if inventory has enough available
+                            $inv_check = $conn->prepare("SELECT available FROM inventory WHERE name = :name LIMIT 1");
+                            $inv_check->execute(['name' => $req['item_name']]);
+                            $inv_res = $inv_check->fetch(PDO::FETCH_ASSOC);
+                            
+                            if ($inv_res && $inv_res['available'] >= $req['quantity']) {
+                                // Deduct available count
+                                $deduct = $conn->prepare("UPDATE inventory SET available = available - :qty WHERE name = :name");
+                                $inventory_success = $deduct->execute(['qty' => $req['quantity'], 'name' => $req['item_name']]);
+                                
+                                // Sync status
+                                $sync = $conn->prepare("UPDATE inventory SET status = CASE WHEN available = 0 THEN 'Not Available' WHEN available <= 3 THEN 'Limited' ELSE 'Available' END WHERE name = :name");
+                                $sync->execute(['name' => $req['item_name']]);
+                            } else {
+                                $inventory_success = false;
+                                $error = 'Insufficient inventory availability to approve this request.';
+                            }
+                        }
+                        
+                        if ($update_success && $inventory_success) {
+                            $conn->commit();
+                            $message = "Request REQ-" . str_pad($req_id, 3, '0', STR_PAD_LEFT) . " has been successfully " . strtolower($decision) . "!";
+                        } else {
+                            $conn->rollBack();
+                            if (empty($error)) {
+                                $error = 'Failed to update request. Database connection error.';
+                            }
+                        }
+                    } catch (Exception $e) {
+                        $conn->rollBack();
+                        $error = 'Failed to process request decision: ' . $e->getMessage();
                     }
-                }
-                
-                if ($update_success && $inventory_success) {
-                    $conn->commit();
-                    $message = "Request REQ-" . str_pad($req_id, 3, '0', STR_PAD_LEFT) . " has been successfully " . strtolower($decision) . "!";
                 } else {
-                    $conn->rollback();
-                    if (empty($error)) {
-                        $error = 'Failed to update request. Database connection error.';
-                    }
+                    $error = 'This request has already been processed.';
                 }
             } else {
-                $error = 'This request has already been processed.';
+                $error = 'Request not found.';
             }
-        } else {
-            $error = 'Request not found.';
+        } elseif ($decision === 'pay_penalty' || $decision === 'waive_penalty') {
+            // Fetch request details
+            $stmt = $conn->prepare("SELECT status, penalty_status FROM requests WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $req_id]);
+            $req = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($req && $req['status'] === 'Returned' && $req['penalty_status'] === 'Unpaid') {
+                try {
+                    $new_status = ($decision === 'pay_penalty') ? 'Paid' : 'Waived';
+                    $update = $conn->prepare("UPDATE requests SET penalty_status = :pstatus WHERE id = :id");
+                    $update->execute(['pstatus' => $new_status, 'id' => $req_id]);
+                    
+                    $message = "Penalty for request REQ-" . str_pad($req_id, 3, '0', STR_PAD_LEFT) . " has been successfully " . strtolower($new_status) . "!";
+                } catch (Exception $e) {
+                    $error = 'Failed to update penalty status: ' . $e->getMessage();
+                }
+            } else {
+                $error = 'This request does not have an unpaid penalty.';
+            }
         }
-        $stmt->close();
     }
 }
 
-// 1. Calculate live counts for cards
-$stat_total = $conn->query("SELECT COUNT(*) FROM requests")->fetch_row()[0];
-$stat_pending = $conn->query("SELECT COUNT(*) FROM requests WHERE status = 'Pending'")->fetch_row()[0];
-$stat_approved = $conn->query("SELECT COUNT(*) FROM requests WHERE status = 'Approved'")->fetch_row()[0];
-$stat_rejected = $conn->query("SELECT COUNT(*) FROM requests WHERE status = 'Rejected'")->fetch_row()[0];
+// 1. Calculate live counts for cards using PDO
+$stat_total = $conn->query("SELECT COUNT(*) FROM requests")->fetchColumn();
+$stat_pending = $conn->query("SELECT COUNT(*) FROM requests WHERE status = 'Pending'")->fetchColumn();
+$stat_approved = $conn->query("SELECT COUNT(*) FROM requests WHERE status = 'Approved'")->fetchColumn();
+$stat_rejected = $conn->query("SELECT COUNT(*) FROM requests WHERE status = 'Rejected'")->fetchColumn();
 
 // 2. Fetch all system requests
 $requests_res = $conn->query("
@@ -95,12 +109,7 @@ $requests_res = $conn->query("
     JOIN users u ON r.user_id = u.id
     ORDER BY r.id DESC
 ");
-$requests_data = [];
-if ($requests_res) {
-    while ($row = $requests_res->fetch_assoc()) {
-        $requests_data[] = $row;
-    }
-}
+$requests_data = $requests_res->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -110,7 +119,7 @@ if ($requests_res) {
     <title>Manage Borrow Requests - Barangay Tiniguiban</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="user_page.css">
+    <link rel="stylesheet" href="user_page.css?v=<?php echo time(); ?>">
     <style>
         /* Manage Requests Custom Styles */
         .search-filter-row {
@@ -118,10 +127,10 @@ if ($requests_res) {
             align-items: center;
             gap: 10px;
             margin-bottom: 15px;
-            background: var(--card-bg);
+            background: #d9d9d9;
             padding: 12px 20px;
-            border-radius: var(--radius-medium);
-            border: 1.5px solid var(--card-border);
+            border-radius: 16px;
+            border: 1.5px solid #c8c2b4;
         }
         .search-filter-row input {
             padding: 8px 12px;
@@ -155,11 +164,11 @@ if ($requests_res) {
             grid-template-columns: 1fr 140px 1fr;
             gap: 20px;
             margin-top: 25px;
-            background: var(--card-bg);
-            border: 1.5px solid var(--card-border);
-            border-radius: var(--radius-large);
+            background: #d9d9d9;
+            border: 1.5px solid #c8c2b4;
+            border-radius: 22px;
             padding: 20px;
-            box-shadow: var(--shadow-small);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
         .bottom-panel .box {
             display: flex;
@@ -201,7 +210,7 @@ if ($requests_res) {
             cursor: pointer;
             color: white;
             font-size: 13px;
-            box-shadow: var(--shadow-sm);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
             transition: opacity 0.2s;
         }
         .btn-decision:hover {
@@ -223,6 +232,31 @@ if ($requests_res) {
         .status-pill.returned {
             background: #888;
         }
+        .penalty-tag {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: inline-block;
+        }
+        .penalty-tag.unpaid {
+            background: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+            border: 1px solid #dc3545;
+        }
+        .penalty-tag.paid {
+            background: rgba(40, 167, 69, 0.15);
+            color: #28a745;
+            border: 1px solid #28a745;
+        }
+        .penalty-tag.waived {
+            background: rgba(108, 117, 125, 0.15);
+            color: #6c757d;
+            border: 1px solid #6c757d;
+        }
+        .penalty-tag.none {
+            color: #888;
+        }
         .alert {
             padding: 10px 15px;
             border-radius: 8px;
@@ -239,53 +273,150 @@ if ($requests_res) {
             background: #7a1a1a;
             color: white;
         }
+        .hamburger-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            width: 35px;
+            height: 35px;
+            margin-left: auto;
+        }
+        .hamburger-toggle svg {
+            width: 100%;
+            height: 100%;
+            fill: #1a2535;
+        }
+        
+        @media (max-width: 768px) {
+            .header-inner {
+                justify-content: space-between;
+                position: relative;
+            }
+            .hamburger-toggle {
+                display: block;
+            }
+            header nav, header .header-right {
+                display: none !important;
+                width: 100%;
+            }
+            .header-inner.menu-open nav {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin-top: 15px;
+                width: 100%;
+                margin-left: 0;
+            }
+            .header-inner.menu-open .header-right {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                margin-top: 15px;
+                width: 100%;
+                border-top: 1px solid #ede6d6;
+                padding-top: 15px;
+                margin-left: 0;
+            }
+            .header-inner.menu-open nav a {
+                width: 100%;
+                text-align: center;
+                padding: 8px;
+            }
+            .header-inner.menu-open nav a::after {
+                display: none !important;
+            }
+            
+            /* Responsive Search Row */
+            .search-filter-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            .search-filter-row input {
+                width: 100% !important;
+                box-sizing: border-box;
+            }
+            .search-filter-row select {
+                width: 100% !important;
+            }
+
+            /* Responsive Bottom Panel */
+            .bottom-panel {
+                grid-template-columns: 1fr !important;
+                gap: 15px !important;
+                padding: 15px !important;
+            }
+            .bottom-panel .actions {
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                gap: 10px !important;
+            }
+            .bottom-panel button {
+                flex: 1 1 120px !important;
+                padding: 10px !important;
+            }
+        }
     </style>
+    <script>
+        function toggleMenu() {
+            const inner = document.querySelector('.header-inner');
+            inner.classList.toggle('menu-open');
+        }
+    </script>
 </head>
 <body>
 
-    <!-- Header -->
     <header>
-        <div class="header-inner">
+  <div class="header-inner">
 
-            <div class="logo-wrap">
-                <img src="logo.png" alt="Barangay Logo" class="logo">
+    <!-- LOGO -->
+    <div class="logo-wrap">
+      <div class="logo-circle">
+        <img src="logo.png" alt="Barangay Logo">
+      </div>
+      <div class="brand-text">
+        <h1>BARANGAY TINIGUIBAN</h1>
+        <p>Resource Borrowing System</p>
+      </div>
+    </div>
 
-                <div class="brand-text">
-                    <h1>BARANGAY TINIGUIBAN</h1>
-                    <p>Resource Borrowing System</p>
-                </div>
-            </div>
+    <!-- Hamburger Toggle Button -->
+    <button class="hamburger-toggle" onclick="toggleMenu()" aria-label="Toggle Menu">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+    </button>
 
-            <!-- Navigation -->
-            <nav>
-                <a href="admin_page.php">Home</a>
-                <a href="admin_inventory.php">Inventory</a>
-                <a href="manage_request.php" class="active">Manage Request</a>
-            </nav>
+    <!-- NAVIGATION -->
+    <nav>
+      <a href="admin_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'admin_page.php') ? 'active' : ''; ?>">Home</a>
+      <a href="admin_inventory.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'admin_inventory.php') ? 'active' : ''; ?>">Inventory</a>
+      <a href="manage_request.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'manage_request.php') ? 'active' : ''; ?>">Manage Request</a>
+      <a href="manage_users.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'manage_users.php') ? 'active' : ''; ?>">Manage Users</a>
+    </nav>
 
-            <!-- User Section -->
-            <div class="header-right">
-
-                <span class="welcome-text">
-                    Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
-                </span>
-
-                <a href="profile.php" class="profile-section" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
-                    <div class="avatar-btn">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                        </svg>
-                    </div>
-
-                    <span class="profile-label">Profile</span>
-                </a>
-
-                <button class="btn-logout" onclick="window.location.href='logout.php'">Logout</button>
-
-            </div>
-
+    <!-- RIGHT SIDE -->
+    <div class="header-right">
+      <span class="welcome-text">
+        Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
+      </span>
+      <a href="profile.php" class="profile-wrap" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
+        <div class="avatar-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
         </div>
-    </header>
+        <span class="profile-label">Profile</span>
+      </a>
+      <button class="btn-logout" onclick="if(confirm('Are you sure you want to logout?')) window.location.href='logout.php';">Logout</button>
+    </div>
+
+  </div>
+</header>
 
     <!-- Main Content -->
     <main>
@@ -343,7 +474,7 @@ if ($requests_res) {
         </div>
 
         <!-- Recent Borrowing Activity -->
-        <section class="activity-section" style="max-height: 280px; overflow-y: auto;">
+        <section class="activity-section" style="max-height: 280px; overflow: auto;">
             <table>
                 <thead>
                     <tr>
@@ -355,6 +486,8 @@ if ($requests_res) {
                         <th>Borrow Date</th>
                         <th>Return Date</th>
                         <th>Return Time</th>
+                        <th>Returned At</th>
+                        <th>Penalty</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -371,12 +504,22 @@ if ($requests_res) {
                                 <td><?php echo htmlspecialchars($req['borrow_date']); ?></td>
                                 <td><?php echo htmlspecialchars($req['return_date']); ?></td>
                                 <td><?php echo htmlspecialchars(substr($req['return_time'], 0, 5)); ?></td>
+                                <td><?php echo $req['returned_at'] ? htmlspecialchars(date('Y-m-d H:i', strtotime($req['returned_at']))) : '—'; ?></td>
+                                <td>
+                                    <?php if ($req['penalty_amount'] > 0): ?>
+                                        <span class="penalty-tag <?php echo strtolower($req['penalty_status']); ?>">
+                                            ₱<?php echo number_format($req['penalty_amount'], 2); ?> (<?php echo htmlspecialchars($req['penalty_status']); ?>)
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="penalty-tag none">—</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><span class="status-pill <?php echo strtolower($req['status']); ?>"><?php echo htmlspecialchars($req['status']); ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="9" style="text-align: center; color: #666; padding: 1.5rem;">No requests found.</td>
+                            <td colspan="11" style="text-align: center; color: #666; padding: 1.5rem;">No requests found.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -395,6 +538,8 @@ if ($requests_res) {
             <div class="actions">
                 <button class="btn-decision btn-approve" id="approveBtn" disabled onclick="decideRequest('Approved')">Approve</button>
                 <button class="btn-decision btn-reject" id="rejectBtn" disabled onclick="decideRequest('Rejected')">Reject</button>
+                <button class="btn-decision btn-pay" id="payBtn" style="display: none; background: #006615;" onclick="handlePenaltyAction('pay_penalty')">Mark Paid</button>
+                <button class="btn-decision btn-waive" id="waiveBtn" style="display: none; background: #6c757d;" onclick="handlePenaltyAction('waive_penalty')">Waive Penalty</button>
             </div>
             
             <!-- Right: Notes -->
@@ -419,7 +564,7 @@ if ($requests_res) {
         window.addEventListener('DOMContentLoaded', () => {
             const rows = document.querySelectorAll('#requestsTableBody tr');
             rows.forEach(row => {
-                if (row.cells.length < 9) return;
+                if (row.cells.length < 11) return;
                 
                 row.addEventListener('click', () => {
                     rows.forEach(r => r.classList.remove('selected'));
@@ -440,13 +585,25 @@ if ($requests_res) {
 
             const approveBtn = document.getElementById('approveBtn');
             const rejectBtn = document.getElementById('rejectBtn');
+            const payBtn = document.getElementById('payBtn');
+            const waiveBtn = document.getElementById('waiveBtn');
+
+            // Reset all
+            approveBtn.style.display = 'inline-block';
+            rejectBtn.style.display = 'inline-block';
+            approveBtn.disabled = true;
+            rejectBtn.disabled = true;
+            if (payBtn) payBtn.style.display = 'none';
+            if (waiveBtn) waiveBtn.style.display = 'none';
 
             if (req.status === 'Pending') {
                 approveBtn.disabled = false;
                 rejectBtn.disabled = false;
-            } else {
-                approveBtn.disabled = true;
-                rejectBtn.disabled = true;
+            } else if (req.status === 'Returned' && req.penalty_status === 'Unpaid') {
+                approveBtn.style.display = 'none';
+                rejectBtn.style.display = 'none';
+                if (payBtn) payBtn.style.display = 'inline-block';
+                if (waiveBtn) waiveBtn.style.display = 'inline-block';
             }
         }
 
@@ -476,6 +633,32 @@ if ($requests_res) {
             }
         }
 
+        function handlePenaltyAction(action) {
+            if (!selectedRowId) return;
+
+            const actionVerb = action === 'pay_penalty' ? 'mark this penalty as PAID' : 'WAIVE this penalty';
+            if (confirm(`Are you sure you want to ${actionVerb} for request REQ-${selectedRowId}?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'manage_request.php';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = action;
+                form.appendChild(actionInput);
+                
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'request_id';
+                idInput.value = selectedRowId;
+                form.appendChild(idInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
         function filterRequests() {
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const statusVal = document.getElementById('filterStatus').value;
@@ -485,7 +668,7 @@ if ($requests_res) {
             const rows = document.querySelectorAll('#requestsTableBody tr');
             
             rows.forEach(row => {
-                if (row.cells.length < 9) return;
+                if (row.cells.length < 11) return;
 
                 const code = row.cells[0].textContent.toLowerCase();
                 const requester = row.cells[1].textContent.toLowerCase();

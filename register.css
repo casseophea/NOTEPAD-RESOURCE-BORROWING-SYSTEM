@@ -1,3 +1,7 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   background: #d6dde3;
@@ -17,6 +21,7 @@ body {
 
 /* LEFT SIDE */
 .left {
+  box-sizing: border-box;
   width: 50%;
   background: #30364F;
   color: white;
@@ -36,6 +41,7 @@ body {
 
 /* RIGHT SIDE */
 .right {
+  box-sizing: border-box;
   width: 50%;
   background: #F0F0DB;
   padding: 30px 40px;
@@ -241,4 +247,110 @@ footer {
 .register-link {
    text-align: center;
    font-size: 11px;
+}
+
+/* REGISTER BUTTON FOR ADMIN REGISTRATION */
+.register-btn {
+  display: block;
+  margin: 5px auto 0;
+  padding: 10px 30px;
+  border: 2px solid #000000;
+  border-radius: 10px;
+  background: #30364F;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+  text-align: center;
+}
+
+.register-btn:hover {
+  background-color: #000000;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+  .container {
+    width: 92%;
+    max-width: 500px;
+    height: auto;
+    flex-direction: column;
+    margin: 20px auto;
+    border-radius: 20px;
+  }
+
+  .left {
+    width: 100%;
+    padding: 30px 20px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .logo {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 15px;
+  }
+
+  .left h2 {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .right {
+    width: 100%;
+    padding: 25px 20px;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .right h2 {
+    font-size: 20px;
+  }
+
+  .name-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .valid-id-row, .role-brgy-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 15px;
+  }
+
+  .id-type, .role-type {
+    width: 100%;
+    padding: 8px 12px;
+  }
+
+  .upload-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 15px;
+  }
+
+  .upload-btn {
+    width: 100%;
+    padding: 10px;
+  }
+}
+
+/* UNIVERSAL MOBILE HEADER SCALING */
+@media (max-width: 768px) {
+  .logo-circle {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .brand-text h1 {
+    font-size: 1.05rem !important;
+  }
+  .brand-text p {
+    font-size: 0.65rem !important;
+  }
 }

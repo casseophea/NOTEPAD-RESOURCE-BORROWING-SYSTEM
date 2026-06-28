@@ -8,21 +8,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
     exit;
 }
 
-// 1. Fetch live metrics from MySQL
+//fetch live metrics from MySQL using PDO
 // Total Items & Available Items
 $inv_res = $conn->query("SELECT SUM(quantity) as total_qty, SUM(available) as avail_qty FROM inventory");
-$inv_data = $inv_res->fetch_assoc();
+$inv_data = $inv_res->fetch(PDO::FETCH_ASSOC);
 $total_items = $inv_data['total_qty'] ?? 0;
 $available_items = $inv_data['avail_qty'] ?? 0;
 
 // Currently Borrowed (Approved requests)
 $borrowed_res = $conn->query("SELECT SUM(quantity) as borrowed_qty FROM requests WHERE status = 'Approved'");
-$borrowed_data = $borrowed_res->fetch_assoc();
+$borrowed_data = $borrowed_res->fetch(PDO::FETCH_ASSOC);
 $currently_borrowed = $borrowed_data['borrowed_qty'] ?? 0;
 
 // Pending Approval (Pending requests)
 $pending_res = $conn->query("SELECT SUM(quantity) as pending_qty FROM requests WHERE status = 'Pending'");
-$pending_data = $pending_res->fetch_assoc();
+$pending_data = $pending_res->fetch(PDO::FETCH_ASSOC);
 $pending_approval = $pending_data['pending_qty'] ?? 0;
 
 // 2. Fetch Recent Activities (System-wide requests)
@@ -33,6 +33,7 @@ $activity_res = $conn->query("
     ORDER BY r.id DESC 
     LIMIT 5
 ");
+$activities = $activity_res->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,52 +43,122 @@ $activity_res = $conn->query("
     <title>Barangay Tiniguiban - Resource Borrowing System</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="user_page.css">
+    <link rel="stylesheet" href="user_page.css?v=<?php echo time(); ?>">
+    <style>
+        .hamburger-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            width: 35px;
+            height: 35px;
+            margin-left: auto;
+        }
+        .hamburger-toggle svg {
+            width: 100%;
+            height: 100%;
+            fill: #1a2535;
+        }
+        
+        @media (max-width: 768px) {
+            .header-inner {
+                justify-content: space-between;
+                position: relative;
+            }
+            .hamburger-toggle {
+                display: block;
+            }
+            header nav, header .header-right {
+                display: none !important;
+                width: 100%;
+            }
+            .header-inner.menu-open nav {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin-top: 15px;
+                width: 100%;
+                margin-left: 0;
+            }
+            .header-inner.menu-open .header-right {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                margin-top: 15px;
+                width: 100%;
+                border-top: 1px solid #ede6d6;
+                padding-top: 15px;
+                margin-left: 0;
+            }
+            .header-inner.menu-open nav a {
+                width: 100%;
+                text-align: center;
+                padding: 8px;
+            }
+            .header-inner.menu-open nav a::after {
+                display: none !important;
+            }
+        }
+    </style>
+    <script>
+        function toggleMenu() {
+            const inner = document.querySelector('.header-inner');
+            inner.classList.toggle('menu-open');
+        }
+    </script>
 </head>
 <body>
 
-    <!-- Header -->
     <header>
-        <div class="header-inner">
+  <div class="header-inner">
 
-            <div class="logo-wrap">
-                <img src="logo.png" alt="Barangay Logo" class="logo">
+    <!-- LOGO -->
+    <div class="logo-wrap">
+      <div class="logo-circle">
+        <img src="logo.png" alt="Barangay Logo">
+      </div>
+      <div class="brand-text">
+        <h1>BARANGAY TINIGUIBAN</h1>
+        <p>Resource Borrowing System</p>
+      </div>
+    </div>
 
-                <div class="brand-text">
-                    <h1>BARANGAY TINIGUIBAN</h1>
-                    <p>Resource Borrowing System</p>
-                </div>
-            </div>
+    <!-- Hamburger Toggle Button -->
+    <button class="hamburger-toggle" onclick="toggleMenu()" aria-label="Toggle Menu">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+    </button>
 
-            <!-- Navigation -->
-            <nav>
-                <a href="user_page.php" class="active">Home</a>
-                <a href="user_inventory.php">Inventory</a>
-                <a href="request_page.php">Request</a>
-                <a href="my_request_page.php">My Request</a>
-            </nav>
+    <!-- NAVIGATION -->
+    <nav>
+      <a href="user_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'user_page.php') ? 'active' : ''; ?>">Home</a>
+      <a href="user_inventory.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'user_inventory.php') ? 'active' : ''; ?>">Inventory</a>
+      <a href="request_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'request_page.php') ? 'active' : ''; ?>">Request</a>
+      <a href="my_request_page.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'my_request_page.php') ? 'active' : ''; ?>">My Request</a>
+    </nav>
 
-            <!-- User Section -->
-            <div class="header-right">
-
-                <span class="welcome-text">
-                    Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
-                </span>
-
-                <a href="profile.php" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
-                    <div class="avatar-btn">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                        </svg>
-                    </div>
-                    <span class="profile-label">Profile</span>
-                </a>
-
-                <a href="logout.php" onclick="return confirm('Are you sure you want to logout?')" class="btn-logout">Logout</a>
-            </div>
-
+    <!-- RIGHT SIDE -->
+    <div class="header-right">
+      <span class="welcome-text">
+        Welcome, <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?>!</strong>
+      </span>
+      <a href="profile.php" class="profile-wrap" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
+        <div class="avatar-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
         </div>
-    </header>
+        <span class="profile-label">Profile</span>
+      </a>
+      <button class="btn-logout" onclick="if(confirm('Are you sure you want to logout?')) window.location.href='logout.php';">Logout</button>
+    </div>
+
+  </div>
+</header>
 
     <!-- Main Content -->
     <main>
@@ -146,8 +217,8 @@ $activity_res = $conn->query("
                 </thead>
 
                 <tbody>
-                    <?php if ($activity_res && $activity_res->num_rows > 0): ?>
-                        <?php while ($row = $activity_res->fetch_assoc()): ?>
+                    <?php if (!empty($activities)): ?>
+                        <?php foreach ($activities as $row): ?>
                             <tr>
                                 <td>
                                 <?php
@@ -159,6 +230,7 @@ $activity_res = $conn->query("
 
                                 echo htmlspecialchars($maskedFirst . ' ' . $maskedLast);
                                 ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($row['item_name']); ?></td>
                                 <td><?php echo htmlspecialchars($row['borrow_date']); ?></td>
                                 <td><?php echo htmlspecialchars($row['return_date']); ?></td>
@@ -168,7 +240,7 @@ $activity_res = $conn->query("
                                     </span>
                                 </td>
                             </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
                             <td colspan="5" style="text-align: center; color: #666;">No recent activity found.</td>
@@ -178,6 +250,41 @@ $activity_res = $conn->query("
 
             </table>
 
+        </section>
+
+        <!-- About System & Services -->
+        <section class="about-services-section" style="background: #f5f0e8; border-radius: 20px; border: 1.5px solid #ede6d6; padding: 30px; margin-top: 30px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); text-align: left;">
+            <h2 style="font-family: 'Playfair Display', serif; color: #1a2535; border-bottom: 2px solid #1a2535; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">
+                About Our System & Services
+            </h2>
+            
+            <p style="font-size: 14px; line-height: 1.6; color: #1e2830; margin-bottom: 20px;">
+                The <strong>Barangay Tiniguiban Resource Borrowing System</strong> is an automated platform created to streamline the scheduling, booking, and management of public assets. It ensures fair access and transparency, enabling residents to secure municipal resources for community and family events under the provisions of the local government codes.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <div style="background: #ffffff; border: 1px solid #c8c2b4; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);">
+                    <h3 style="color: #1a2535; font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        Available Resources
+                    </h3>
+                    <ul style="font-size: 13px; line-height: 1.6; padding-left: 20px; color: #5a6a76;">
+                        <li><strong>Event Furniture</strong>: Durable plastic chairs and foldable tables for private gatherings, assemblies, or wakes.</li>
+                        <li><strong>Audio/Video Gear</strong>: Professional sound systems, wireless microphones, projectors, and projection screens.</li>
+                        <li><strong>Office & Event Accs</strong>: Presentation boards, high-capacity extension cords, and accessory kits.</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #ffffff; border: 1px solid #c8c2b4; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);">
+                    <h3 style="color: #1a2535; font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        Borrowing Guidelines
+                    </h3>
+                    <ul style="font-size: 13px; line-height: 1.6; padding-left: 20px; color: #5a6a76;">
+                        <li><strong>Live Inventory Checking</strong>: Always verify item counts in the live inventory database before booking.</li>
+                        <li><strong>Adhere to Timelines</strong>: Items must be returned strictly by the exact return date and time to allow other residents to borrow them.</li>
+                        <li><strong>Commodatum Rules</strong>: Under the Civil Code of the Philippines, borrowers must exercise high care and diligence over public assets.</li>
+                    </ul>
+                </div>
+            </div>
         </section>
 
     </main>
