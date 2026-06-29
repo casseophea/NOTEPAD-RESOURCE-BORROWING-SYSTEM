@@ -263,7 +263,7 @@ $user_name = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Guest';
     <!-- LOGO -->
     <div class="logo-wrap">
       <div class="logo-circle">
-        <img src="logo.png" alt="Barangay Logo">
+        <img src="images/logo.png" alt="Barangay Logo">
       </div>
       <div class="brand-text">
         <h1>BARANGAY TINIGUIBAN</h1>

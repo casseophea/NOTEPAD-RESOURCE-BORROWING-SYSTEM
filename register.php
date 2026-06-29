@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container">
   <!-- LEFT PANEL -->
   <div class="left">
-    <img src="logo.png" class="logo" alt="logo" style="width: 150px; height: 150px; border-radius: 50%;">
+    <img src="images/logo.png" class="logo" alt="logo" style="width: 150px; height: 150px; border-radius: 50%;">
     <h2>BARANGAY TINIGUIBAN RESOURCE<br> BORROWING SYSTEM</h2>
     <hr style="border: 2px solid #F0F0DB; width: 110%; margin-left: -5%;">
   </div>
