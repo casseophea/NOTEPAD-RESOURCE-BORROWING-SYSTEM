@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// 1. Fetch live metrics from MySQL using PDO
+//Fetch live metrics from MySQL using PDO
 // Total Items & Available Items
 $inv_res = $conn->query("SELECT SUM(quantity) as total_qty, SUM(available) as avail_qty FROM inventory");
 $inv_data = $inv_res->fetch(PDO::FETCH_ASSOC);
@@ -25,7 +25,7 @@ $pending_res = $conn->query("SELECT SUM(quantity) as pending_qty FROM requests W
 $pending_data = $pending_res->fetch(PDO::FETCH_ASSOC);
 $pending_approval = $pending_data['pending_qty'] ?? 0;
 
-// 2. Fetch Recent Activities (System-wide requests)
+//Fetch Recent Activities (System-wide requests)
 $activity_res = $conn->query("
     SELECT r.item_name, r.borrow_date, r.return_date, r.status, u.first_name, u.last_name 
     FROM requests r
